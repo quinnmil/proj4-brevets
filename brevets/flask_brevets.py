@@ -52,14 +52,31 @@ def _calc_times():
     Expects one URL-encoded argument, the number of miles.
     """
     app.logger.debug("Got a JSON request")
+
+    #Get data recieved
     km = request.args.get('km', 999, type=float)
-    app.logger.debug("km={}".format(km))
-    app.logger.debug("request.args: {}".format(request.args))
-    # FIXME: These probably aren't the right open and close times
-    # and brevets may be longer than 200km
-    open_time = acp_times.open_time(km, 200, arrow.now().isoformat)
-    close_time = acp_times.close_time(km, 200, arrow.now().isoformat)
-    result = {"open": open_time, "close": close_time}
+    brevet_dist = request.args.get('brevet_dist', 0, type=float)
+    begin_date = request.args.get('begin_date', 0, type=str)
+    begin_time = request.args.get('begin_time', 0, type=str)
+    message = ""
+
+    #Check for negative values
+    if km < 0:
+      message = "Control distance cannot be negative."
+      km = 0
+
+    #Control distance cannot exceed 120% brevet distance
+    if km > (brevet_dist*1.2):
+      message = "Control distance cannot be longer than 120% brevet distance."
+
+
+    #Brevet start format
+    brevet_start = begin_date + " " + begin_time + ":00"
+    brevet_start_time = arrow.get(brevet_start, 'YYYY-MM-DD HH:mm:ss')
+
+    open_time = acp_times.open_time(km, brevet_dist, brevet_start_time.isoformat())
+    close_time = acp_times.close_time(km, brevet_dist, brevet_start_time.isoformat())
+    result = {"open": open_time, "close": close_time, "message": message}
     return flask.jsonify(result=result)
 
 
